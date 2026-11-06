@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph Orders["Orders"]
+        OF["OrdersFacade<br/>add_to_cart() / checkout() / get_order()"]
+        OI[("internal: cart_items, orders, order_items")]
+    end
+    subgraph Users["Users"]
+        UF["UsersFacade<br/>register() / get_user() / exists()"]
+        UI[("internal: users")]
+    end
+    subgraph Catalog["Catalog"]
+        CF["CatalogFacade<br/>get_product() / reserve_stock() / release_stock()"]
+        CI[("internal: categories, products")]
+    end
+    subgraph Billing["Billing"]
+        BF["BillingFacade<br/>get_invoice_by_order()"]
+        BI[("internal: invoices")]
+    end
+    SK{{"SharedKernel<br/>EventBus, Money, errors, contracts:<br/>OrderCreatedEvent / PaymentSucceededEvent / PaymentFailedEvent"}}
+
+    OF -- "вызов фасада (DTO)" --> UF
+    OF -- "вызов фасада (DTO)" --> CF
+    OF -. "publish OrderCreatedEvent" .-> SK
+    SK -. "OrderCreatedEvent" .-> BF
+    BF -. "publish PaymentSucceeded/Failed" .-> SK
+    SK -. "PaymentSucceeded/Failed" .-> OF
+
+    OF -.-x OI
+    BF -.-x|"ЗАПРЕЩЕНО: доступ к БД Orders"| OI
+    CF -.-x|"ЗАПРЕЩЕНО: Catalog -> Orders"| OF
+    UF -.-x|"ЗАПРЕЩЕНО: Users -> Orders"| OF
